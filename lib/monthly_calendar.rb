@@ -7,14 +7,25 @@ require_relative "./ui"
 class MonthlyCalendar
   include UI
 
-  attr_reader :pdf
+  attr_reader :pdf, :content # :nodoc:
 
-  def initialize(options = {})
+  # @param content {[]} A hash of content array of hashes for calendar days
+  # Each key is a day number (Integer) and the value is an array of hashes
+  # representing the content to be displayed on that day.
+  # @option content [String] :text The text content to display inside the day square
+  # @option content [Date, String] :date The date associated with the day square
+  # @option content [Hash] :text_options Additional text options for rendering the content
+  # @param options [Hash] Additional options for calendar generation
+  # @option options [String, Date] :start_date The starting date for the calendar (default: today)
+  # @option options [Integer] :pages The number of months (pages) to generate (default: 1)
+  def initialize(options = {}, content:)
+    raise ArgumentError, "Content must be a Hash" unless content.is_a?(Hash)
     @start_date = (options[:start_date] && Date.parse(options[:start_date])) ||
                   Date.today
     @pages_count = options[:pages] || 1
 
     @pdf = Prawn::Document.new(page_layout: :landscape, top_margin: 1.in, skip_page_creation: true)
+    @content = content
     create
   end
 
@@ -41,18 +52,21 @@ class MonthlyCalendar
 
       weeks_count = ((days_in_month + first_day_of_week) / 7.0).ceil
 
-      pdf.define_grid(rows: weeks_count, columns: 7)
+      pdf.define_grid(rows: weeks_count, columns: 7, gutter: 10)
 
       draw_header(month)
 
+      beginning_of_the_month = Date.parse(month)
       weeks.each_with_index do |week, week_index|
         draw_notes(week_index,
                    find_nil_cells(week),
                    weeks_count == 6 ? :close : :far)
-
         week.each_with_index do |day, day_index|
-          draw_day_square(week_index, day_index, day)
-        end
+          # check if day is nil to avoid error
+          current_day = beginning_of_the_month + (day - 1) if day
+
+          draw_day_square(week_index, day_index, day, content.fetch(current_day, content.fetch(current_day.to_s, [])))
+         end
       end
 
       # The last thing drawn on each page isn't rendered for some reason so this

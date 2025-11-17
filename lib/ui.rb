@@ -1,23 +1,38 @@
 module UI
   private
 
-  def draw_day_square(week_index, day_index, day_text)
+  # @param week_index [Integer] The index of the week (row) in the calendar grid
+  # @param day_index [Integer] The index of the day (column) in the calendar grid
+  # @param day_text [Integer, nil] The day number to display; if nil, the cell is empty
+  # @param contents: [{}]
+  # @options contents {}:
+  # @option text (mandatory): [String] The text content to display inside the day square
+  # @option date (mandatory): [Date] The date associated with the day square
+  # @option text_options: [Hash] Additional text options for rendering the content
+  # @return [void]
+  def draw_day_square(week_index, day_index, day_text, contents = [{}])
     return unless day_text
 
     pdf.grid([week_index, day_index], [week_index, day_index]).bounding_box do
       pdf.stroke_bounds
 
-      pdf.rectangle [0, pdf.bounds.height], 15, 15
+      # Day number in a fixed 15x15 box at the top-left
       pdf.text_box day_text.to_s,
-                   at: [0, pdf.bounds.height],
-                   height: 15,
-                   width: 15,
-                   size: 8,
-                   align: :center,
-                   valign: :center
+        at: [0, pdf.bounds.height],
+        height: 15, width: 15, size: 8,
+        align: :center, valign: :center
+
+      # Move the flowing cursor below the day number box
+      pdf.move_down 20
+
+      # One call per line — no explicit "\n"
+      option = { size: 6, indent_paragraphs: 10 }
+      Array(contents).each do |content|
+        # pdf.text content[:text], content.fetch(:text_options, {}).merge(option)
+        pdf.text content, option
+      end
     end
   end
-
 
   def draw_header(month)
     pdf.rectangle [0, pdf.bounds.height + 0.5.in], pdf.bounds.width, 0.5.in
