@@ -27,7 +27,11 @@ module UI
 
       # One call per line — no explicit "\n"
       option = { size: 6, indent_paragraphs: 10 }
-      Array(contents).each do |content|
+      Array(contents).each_with_index do |content, index|
+        if index >= 5
+          pdf.text "...", option
+          break
+        end
         # pdf.text content[:text], content.fetch(:text_options, {}).merge(option)
         pdf.text content, option
       end
